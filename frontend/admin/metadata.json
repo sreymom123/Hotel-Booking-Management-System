@@ -1,0 +1,6 @@
+{
+  "name": "Grand Horizon",
+  "description": "Premium hospitality management system for Grand Horizon resorts and hotels.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
