@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import { OperationRepository } from '../repositories';
-import { OperationService } from '../services';
-import { OperationController } from '../controllers';
+import { PaymentRepository } from '../repositories';
+import { PaymentService } from '../services';
+import { PaymentController } from '../controllers';
 
 const masterRouter = Router();
 
 // Object Oriented Dependency Injection Linkage
-const repo = new OperationRepository();
-const service = new OperationService(repo);
-const controller = new OperationController(service);
+const repo = new PaymentRepository();
+const service = new PaymentService(repo);
+const controller = new PaymentController(service);
 
 // Endpoints mapping
 masterRouter.post('/checkin', controller.processCheckIn);

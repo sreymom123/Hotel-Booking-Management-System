@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { OperationService } from '../services';
+import { PaymentService } from '../services';
 import { ApiResponse } from '../utils/response';
 
-export class OperationController {
-  constructor(private service: OperationService) {}
+export class PaymentController {
+  constructor(private service: PaymentService) {}
 
   public processCheckIn = async (req: Request, res: Response): Promise<void> => {
     try {

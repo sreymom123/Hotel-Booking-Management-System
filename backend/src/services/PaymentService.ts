@@ -1,8 +1,8 @@
-import { OperationRepository } from '../repositories';
+import { PaymentRepository } from '../repositories';
 import { prisma } from '../config/db';
 
-export class OperationService {
-  constructor(private repo: OperationRepository) {}
+export class PaymentService {
+  constructor(private repo: PaymentRepository) {}
 
   async checkIn(bookingId: number, adminId: number, paymentMethod: 'CASH' | 'CARD' | 'TRANSFER', note?: string) {
     const booking = await prisma.bookings.findUnique({

@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import healthRouter from "./health.routes";
+import paymentRouter from "./paymentRoutes";
 
 const router = Router();
 
@@ -11,5 +12,6 @@ router.get("/", (_request, response) => {
 });
 
 router.use("/health", healthRouter);
+router.use("/payment", paymentRouter);
 
 export default router;
