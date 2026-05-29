@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { OperationRepository } from '../repositories';
-import { OperationService } from '../services';
-import { OperationController } from '../controllers';
+import { OperationController } from '../controllers/PaymentController.js';
+import { OperationRepository } from '../repositories/PaymentRepository.js';
+import { OperationService } from '../services/PaymentService.js';
 
 const masterRouter = Router();
 

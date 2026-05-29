@@ -8,6 +8,11 @@ export const sendError = (res: Response, message: string, errors: unknown[] = []
   res.status(status).json({ success: false, message, errors });
 };
 
+export const ApiResponse = {
+  success: sendSuccess,
+  error: sendError,
+};
+
 export const notFoundHandler = (request: Request, response: Response): void => {
   response.status(404).json({
     success: false,

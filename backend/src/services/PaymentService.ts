@@ -1,41 +1,69 @@
-import { OperationRepository } from '../repositories';
-import { prisma } from '../config/db';
+import { OperationPaymentMethod, OperationRepository } from "../repositories/PaymentRepository.js";
+
+const paymentMethodMap: Record<string, OperationPaymentMethod> = {
+  CASH: "Cash",
+  CARD: "Credit Card",
+  CREDIT_CARD: "Credit Card",
+  DEBIT_CARD: "Debit Card",
+  TRANSFER: "Bank Transfer",
+  BANK_TRANSFER: "Bank Transfer",
+  ONLINE: "Online",
+};
 
 export class OperationService {
   constructor(private repo: OperationRepository) {}
 
-  async checkIn(bookingId: number, adminId: number, paymentMethod: 'CASH' | 'CARD' | 'TRANSFER', note?: string) {
-    const booking = await prisma.bookings.findUnique({
-      where: { id: BigInt(bookingId) },
-      include: { rooms: true }
-    });
+  async checkIn(bookingId: number, adminId: number, paymentMethod: string, note?: string) {
+    const booking = await this.repo.findBookingById(bookingId);
+    const normalizedPaymentMethod = normalizePaymentMethod(paymentMethod);
 
-    if (!booking) throw new Error('Target booking record not found.');
-    if (booking.status === 'CHECKED_IN') throw new Error('Guest has already checked in.');
-    if (booking.rooms.status === 'OCCUPIED') throw new Error('Target room is currently occupied.');
+    if (!booking) {
+      throw new Error("Target booking record not found.");
+    }
 
-    // Step A: Process Payment Log
-    const paymentCode = `PAY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-    await this.repo.createPayment({
+    if (booking.status === "Checked-in") {
+      throw new Error("Guest has already checked in.");
+    }
+
+    if (booking.status === "Checked-out" || booking.status === "Cancelled") {
+      throw new Error("Cannot check in a completed or cancelled booking.");
+    }
+
+    if (booking.room_status === "Occupied") {
+      throw new Error("Target room is currently occupied.");
+    }
+
+    return this.repo.executeCheckInTx(
       bookingId,
-      paymentCode,
-      amount: Number(booking.total_price),
-      paymentMethod
-    });
-
-    // Step B: Update room to OCCUPIED and save check-in details
-    return await this.repo.executeCheckInTx(bookingId, booking.room_id, adminId, note);
+      Number(booking.room_id),
+      adminId,
+      normalizedPaymentMethod,
+      Number(booking.total_price),
+      note,
+    );
   }
 
   async checkOut(bookingId: number, adminId: number, note?: string) {
-    const booking = await prisma.bookings.findUnique({
-      where: { id: BigInt(bookingId) }
-    });
+    const booking = await this.repo.findBookingById(bookingId);
 
-    if (!booking) throw new Error('Target booking record not found.');
-    if (booking.status !== 'CHECKED_IN') throw new Error('Cannot run checkout procedures for an inactive stay.');
+    if (!booking) {
+      throw new Error("Target booking record not found.");
+    }
 
-    // Free up room back to AVAILABLE and complete log parameters
-    return await this.repo.executeCheckOutTx(bookingId, booking.room_id, adminId, note);
+    if (booking.status !== "Checked-in") {
+      throw new Error("Cannot run checkout procedures for an inactive stay.");
+    }
+
+    return this.repo.executeCheckOutTx(bookingId, Number(booking.room_id), adminId, note);
   }
+}
+
+function normalizePaymentMethod(paymentMethod: string): OperationPaymentMethod {
+  const normalized = paymentMethodMap[paymentMethod.trim().toUpperCase().replaceAll(" ", "_")];
+
+  if (!normalized) {
+    throw new Error("Unsupported payment method.");
+  }
+
+  return normalized;
 }

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { OperationService } from '../services';
+import { OperationService } from '../services/PaymentService';
 import { ApiResponse } from '../utils/response';
 
 export class OperationController {
