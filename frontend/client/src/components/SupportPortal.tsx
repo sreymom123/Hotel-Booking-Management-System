@@ -307,6 +307,7 @@ export default function SupportPortal() {
           <div className="absolute inset-0 bg-[#031635]/20" />
         </div>
       </section>
+      
 
     </div>
   );

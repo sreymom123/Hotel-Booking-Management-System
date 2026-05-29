@@ -1,0 +1,703 @@
+openapi: 3.0.0
+info:
+  title: SHBMS API
+  version: 1.0.0
+  description: Simple Hotel Booking Management System API
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.yourdomain.com/api
+    description: Production server
+paths:
+  /rooms:
+    get:
+      summary: Retrieve a list of all rooms with filtering
+      operationId: getRooms
+      parameters:
+        - name: room_type
+          in: query
+          description: Filter by room type
+          required: false
+          schema:
+            type: string
+            enum: [Suite, Deluxe, Standard, Executive]
+        - name: status
+          in: query
+          description: Filter by room status
+          required: false
+          schema:
+            type: string
+            enum: [Available, Occupied, Cleaning, Maintenance]
+      responses:
+        '200':
+          description: Successful response with list of rooms
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Rooms loaded
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Room'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create a new room (Admin only)
+      operationId: createRoom
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoomDto'
+      responses:
+        '201':
+          description: Room created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /rooms/{id}:
+    get:
+      summary: Get room by ID
+      operationId: getRoomById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Room ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response with room data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update room (Admin only)
+      operationId: updateRoom
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Room ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoomDto'
+      responses:
+        '200':
+          description: Room updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete room (Admin only)
+      operationId: deleteRoom
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Room ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Room deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /rooms/{id}/images:
+    get:
+      summary: Get images for a specific room
+      operationId: getRoomImages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Room ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successful response with room images
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Room images loaded
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RoomImage'
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Add image to room (Admin only)
+      operationId: addRoomImage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Room ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoomImageDto'
+      responses:
+        '201':
+          description: Room image added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomImageResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /images/{id}:
+    delete:
+      summary: Delete room image (Admin only)
+      operationId: deleteRoomImage
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Image ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Room image deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Room image not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /rooms/{id}/status:
+    patch:
+      summary: Update room status (Admin only)
+      operationId: updateRoomStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Room ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [Available, Occupied, Cleaning, Maintenance]
+                  description: New status for the room
+      responses:
+        '200':
+          description: Room status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    Room:
+      type: object
+      required:
+        - id
+        - room_number
+        - room_type
+        - name
+        - floor_number
+        - capacity
+        - price
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the room
+          example: 1
+        room_number:
+          type: string
+          description: Physical room identifier (e.g. 101)
+          example: "101"
+        room_type:
+          type: string
+          description: Type of room
+          enum: [Suite, Deluxe, Standard, Executive]
+          example: "Suite"
+        name:
+          type: string
+          description: Display name for the room
+          example: "Suite 101"
+        floor_number:
+          type: integer
+          description: Floor the room is located on
+          example: 1
+        location:
+          type: string
+          nullable: true
+          description: Wing or block description
+          example: "Main Building"
+        capacity:
+          type: integer
+          description: Maximum number of guests
+          example: 4
+        price:
+          type: number
+          format: float
+          description: Nightly rate
+          example: 150.00
+        description:
+          type: string
+          nullable: true
+          description: Long-form room description
+          example: "Private suite room for premium stays."
+        image_url:
+          type: string
+          nullable: true
+          description: Primary room photo URL
+          example: "https://example.com/images/room101.jpg"
+        status:
+          type: string
+          description: Current availability status
+          enum: [Available, Occupied, Cleaning, Maintenance]
+          example: "Available"
+        created_at:
+          type: string
+          format: date-time
+          description: Record creation time
+          example: "2026-05-26T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last modification time
+          example: "2026-05-26T10:00:00Z"
+    RoomImage:
+      type: object
+      required:
+        - id
+        - room_id
+        - image_url
+        - created_at
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the image
+          example: 1
+        room_id:
+          type: integer
+          description: ID of the room this image belongs to
+          example: 1
+        image_url:
+          type: string
+          description: URL of the additional room photo
+          example: "https://example.com/images/room101_gallery1.jpg"
+        created_at:
+          type: string
+          format: date-time
+          description: Record creation time
+          example: "2026-05-26T10:00:00Z"
+    CreateRoomDto:
+      type: object
+      required:
+        - room_number
+        - room_type
+        - name
+        - floor_number
+        - capacity
+        - price
+      properties:
+        room_number:
+          type: string
+          description: Physical room identifier (e.g. 101)
+          example: "101"
+        room_type:
+          type: string
+          description: Type of room
+          enum: [Suite, Deluxe, Standard, Executive]
+          example: "Suite"
+        name:
+          type: string
+          description: Display name for the room
+          example: "Suite 101"
+        floor_number:
+          type: integer
+          description: Floor the room is located on
+          example: 1
+        location:
+          type: string
+          nullable: true
+          description: Wing or block description
+          example: "Main Building"
+        capacity:
+          type: integer
+          description: Maximum number of guests
+          example: 4
+        price:
+          type: number
+          format: float
+          description: Nightly rate
+          example: 150.00
+        description:
+          type: string
+          nullable: true
+          description: Long-form room description
+          example: "Private suite room for premium stays."
+        image_url:
+          type: string
+          nullable: true
+          description: Primary room photo URL
+          example: "https://example.com/images/room101.jpg"
+        status:
+          type: string
+          description: Current availability status
+          enum: [Available, Occupied, Cleaning, Maintenance]
+          example: "Available"
+    UpdateRoomDto:
+      type: object
+      properties:
+        room_number:
+          type: string
+          description: Physical room identifier (e.g. 101)
+          example: "101"
+        room_type:
+          type: string
+          description: Type of room
+          enum: [Suite, Deluxe, Standard, Executive]
+          example: "Suite"
+        name:
+          type: string
+          description: Display name for the room
+          example: "Suite 101"
+        floor_number:
+          type: integer
+          description: Floor the room is located on
+          example: 1
+        location:
+          type: string
+          nullable: true
+          description: Wing or block description
+          example: "Main Building"
+        capacity:
+          type: integer
+          description: Maximum number of guests
+          example: 4
+        price:
+          type: number
+          format: float
+          description: Nightly rate
+          example: 150.00
+        description:
+          type: string
+          nullable: true
+          description: Long-form room description
+          example: "Private suite room for premium stays."
+        image_url:
+          type: string
+          nullable: true
+          description: Primary room photo URL
+          example: "https://example.com/images/room101.jpg"
+        status:
+          type: string
+          description: Current availability status
+          enum: [Available, Occupied, Cleaning, Maintenance]
+          example: "Available"
+    CreateRoomImageDto:
+      type: object
+      required:
+        - room_id
+        - image_url
+      properties:
+        room_id:
+          type: integer
+          description: ID of the room this image belongs to
+          example: 1
+        image_url:
+          type: string
+          description: URL of the additional room photo
+          example: "https://example.com/images/room101_gallery1.jpg"
+    RoomResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Room loaded
+        data:
+          $ref: '#/components/schemas/Room'
+    RoomImageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Room image added
+        data:
+          $ref: '#/components/schemas/RoomImage'
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Room deleted
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Validation failed
+        errors:
+          type: array
+          items:
+            type: string
+          example: ["Room number is required"]
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
