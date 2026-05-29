@@ -54,13 +54,20 @@ router.post("/", async (request, response, next) => {
     const body = request.body as Record<string, unknown>;
     const roomNumber = String(body.roomId ?? body.roomNumber ?? "");
     const guestName = String(body.guestName ?? body.purpose ?? "Guest Booking").trim();
+    const guestEmail = String(body.guestEmail ?? body.email ?? "").trim().toLowerCase();
+    const guestPhone = String(body.guestPhone ?? body.phone ?? "").trim();
     const checkIn = String(body.checkInDate ?? body.checkIn ?? "");
     const checkOut = String(body.checkOutDate ?? body.checkOut ?? "");
     const guestCount = Number(body.guestCount ?? 1);
     const specialRequest = typeof body.specialRequest === "string" ? body.specialRequest : null;
 
-    if (!roomNumber || !checkIn || !checkOut || !Number.isInteger(guestCount) || guestCount < 1) {
-      response.status(400).json({ success: false, message: "Room, dates, and guest count are required" });
+    if (!roomNumber || !guestName || !guestEmail || !guestPhone || !checkIn || !checkOut || !Number.isInteger(guestCount) || guestCount < 1) {
+      response.status(400).json({ success: false, message: "Room, guest information, dates, and guest count are required" });
+      return;
+    }
+
+    if (!isValidEmail(guestEmail)) {
+      response.status(400).json({ success: false, message: "A valid guest email is required" });
       return;
     }
 
@@ -78,15 +85,16 @@ router.post("/", async (request, response, next) => {
     const totalDays = calculateDays(checkIn, checkOut);
     const totalPrice = Number(room.price) * totalDays;
     const bookingCode = `BK-${Date.now().toString().slice(-8)}`;
+    const userId = await saveBookingCustomer(guestName, guestEmail, guestPhone);
 
     const [result] = await db.query<ResultSetHeader>(
       `
       INSERT INTO bookings
-        (room_id, booking_code, check_in, check_out, guest_count, total_days, purpose, special_request, total_price, status)
+        (user_id, room_id, booking_code, check_in, check_out, guest_count, total_days, purpose, special_request, total_price, status)
       VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')
       `,
-      [room.id, bookingCode, checkIn, checkOut, guestCount, totalDays, guestName || "Guest Booking", specialRequest, totalPrice],
+      [userId, room.id, bookingCode, checkIn, checkOut, guestCount, totalDays, guestName, specialRequest, totalPrice],
     );
 
     await db.query("UPDATE rooms SET status = 'Occupied' WHERE id = ?", [room.id]);
@@ -183,6 +191,27 @@ function calculateDays(checkIn: string, checkOut: string): number {
   const end = new Date(checkOut).getTime();
   const days = Math.ceil((end - start) / 86_400_000);
   return Number.isFinite(days) && days > 0 ? days : 1;
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function saveBookingCustomer(name: string, email: string, phone: string): Promise<number> {
+  const [result] = await db.query<ResultSetHeader>(
+    `
+    INSERT INTO users (name, email, password, role, phone, is_active)
+    VALUES (?, ?, '', 'customer', ?, TRUE)
+    ON DUPLICATE KEY UPDATE
+      name = IF(role = 'customer', VALUES(name), name),
+      phone = IF(role = 'customer', VALUES(phone), phone),
+      is_active = TRUE,
+      id = LAST_INSERT_ID(id)
+    `,
+    [name, email, phone],
+  );
+
+  return result.insertId;
 }
 
 export default router;

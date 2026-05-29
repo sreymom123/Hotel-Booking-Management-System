@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(120) NOT NULL,
   email VARCHAR(160) NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'staff') NOT NULL DEFAULT 'admin',
+  role ENUM('admin', 'staff', 'customer') NOT NULL DEFAULT 'admin',
   phone VARCHAR(40) NULL,
   profile_image VARCHAR(500) NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -98,6 +98,9 @@ CREATE TABLE IF NOT EXISTS checkin_checkout_logs (
   CONSTRAINT checkin_checkout_logs_checked_in_by_fk FOREIGN KEY (checked_in_by) REFERENCES users (id) ON DELETE SET NULL,
   CONSTRAINT checkin_checkout_logs_checked_out_by_fk FOREIGN KEY (checked_out_by) REFERENCES users (id) ON DELETE SET NULL
 );
+
+ALTER TABLE users
+  MODIFY role ENUM('admin', 'staff', 'customer') NOT NULL DEFAULT 'admin';
 
 INSERT INTO users (name, email, password, role, phone, is_active)
 VALUES ('Hotel Administrator', 'admin@grandhorizon.com', 'admin123', 'admin', NULL, TRUE)
