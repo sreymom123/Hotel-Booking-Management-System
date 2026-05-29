@@ -124,10 +124,10 @@ router.post("/", requireAdmin, async (_request, response, next) => {
       return;
     }
 
-    if (image_url !== undefined && typeof image_url !== "string") {
-      response.status(400).json({ success: false, message: "Image URL must be a string" });
-      return;
-    }
+      if (image_url !== undefined && image_url !== null && typeof image_url !== "string") {
+        response.status(400).json({ success: false, message: "Image URL must be a string" });
+        return;
+      }
 
     if (status && (typeof status !== "string" || !roomStatuses.includes(status as RoomStatus))) {
       response.status(400).json({ success: false, message: "Valid room status is required" });
@@ -215,7 +215,7 @@ router.put("/:id", requireAdmin, async (_request, response, next) => {
        return;
      }
 
-     if (image_url !== undefined && typeof image_url !== "string") {
+     if (image_url !== undefined && image_url !== null && typeof image_url !== "string") {
        response.status(400).json({ success: false, message: "Image URL must be a string" });
        return;
      }
