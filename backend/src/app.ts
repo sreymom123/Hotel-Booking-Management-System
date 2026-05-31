@@ -1,29 +1,28 @@
 import cors from "cors";
 import express from "express";
-
-import { config } from "./config";
-import { errorHandler, notFoundHandler } from "./middlewares";
-import router from "./routes";
+import authRoutes from "./routes/authRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
+import healthRoutes from "./routes/health.routes.js";
+import roomRoutes from "./routes/roomRoutes.js";
+import { errorHandler, notFoundHandler } from "./utils/response.js";
 
 const app = express();
 
-app.use(
-  cors({
-    origin: config.corsOrigin === "*" ? true : config.corsOrigin,
-    credentials: true,
-  }),
-);
+app.use(cors({ origin: process.env.CORS_ORIGIN ?? true }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-app.get("/", (_request, response) => {
+app.get("/api", (_request, response) => {
   response.status(200).json({
-    message: "Welcome to the Hotel Booking Management API.",
-    healthCheck: "/api/health",
+    success: true,
+    message: "Hotel Booking Management API routes are available",
   });
 });
 
-app.use("/api", router);
+app.use("/api/health", healthRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/bookings", bookingRoutes);
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
