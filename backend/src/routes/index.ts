@@ -1,17 +1,24 @@
-import { Router } from "express";
+import { Router } from 'express';
+import { PaymentRepository } from '../repositories';
+import { PaymentService } from '../services';
+import { PaymentController } from '../controllers';
 
-import healthRouter from "./health.routes";
-import paymentRouter from "./paymentRoutes";
+const masterRouter = Router();
 
-const router = Router();
+// Hook up your architectural components cleanly (Dependency Injection)
+const repository = new PaymentRepository();
+const service = new PaymentService(repository);
+const controller = new PaymentController(service);
 
-router.get("/", (_request, response) => {
-  response.status(200).json({
-    message: "Hotel Booking Management API routes are available.",
-  });
+// Health check endpoint
+masterRouter.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'OK', message: 'API is running' });
 });
 
-router.use("/health", healthRouter);
-router.use("/payment", paymentRouter);
+// Define API Endpoints
+masterRouter.post('/checkin', controller.processCheckIn);
+masterRouter.post('/checkout', controller.processCheckOut);
+masterRouter.get('/payment/:bookingId', controller.getPaymentDetails);
 
-export default router;
+
+export default masterRouter;

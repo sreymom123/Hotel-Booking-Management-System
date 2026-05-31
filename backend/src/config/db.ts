@@ -1,35 +1,18 @@
-type PrismaLike = {
-  [key: string]: any;
-};
+import dotenv from "dotenv";
+import mysql from "mysql2/promise";
 
-const globalForPrisma = globalThis as typeof globalThis & {
-  prisma?: PrismaLike;
-};
+dotenv.config();
 
-const createMissingPrismaProxy = (): PrismaLike =>
-  new Proxy(
-    {},
-    {
-      get() {
-        throw new Error(
-          "Prisma client is not available. Install `@prisma/client`, add your Prisma schema and DATABASE_URL, then generate the client before using payment, check-in, or check-out endpoints.",
-        );
-      },
-    },
-  );
+const pool = mysql.createPool({
+  host: process.env.DB_HOST ?? "localhost",
+  port: Number(process.env.DB_PORT ?? 3306),
+  user: process.env.DB_USER ?? "root",
+  password: process.env.DB_PASSWORD ?? "",
+  database: process.env.DB_NAME ?? "hotelbookingmanagementsystem",
+  waitForConnections: true,
+  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT ?? 10),
+  namedPlaceholders: true,
+});
 
-const createPrismaClient = (): PrismaLike => {
-  try {
-    const { PrismaClient } = require("@prisma/client");
-
-    if (!globalForPrisma.prisma) {
-      globalForPrisma.prisma = new PrismaClient();
-    }
-
-    return globalForPrisma.prisma as PrismaLike;
-  } catch {
-    return createMissingPrismaProxy();
-  }
-};
-
-export const prisma = createPrismaClient();
+export default pool;
+export const db = pool;

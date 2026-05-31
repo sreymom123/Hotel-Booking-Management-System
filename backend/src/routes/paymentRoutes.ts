@@ -11,7 +11,11 @@ const service = new PaymentService(repo);
 const controller = new PaymentController(service);
 
 // Endpoints mapping
-masterRouter.post('/checkin', controller.processCheckIn);
-masterRouter.post('/checkout', controller.processCheckOut);
+masterRouter.post('/checkIn', controller.processCheckIn);
+masterRouter.post('/checkOut', controller.processCheckOut);
+masterRouter.get('/all', controller.getAllPayments);
+
+// 4. Resource Queries Retrieval Routes
+masterRouter.get('/details/:bookingId', controller.getPaymentDetails);
 
 export default masterRouter;
