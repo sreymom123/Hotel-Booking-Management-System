@@ -15,10 +15,14 @@ masterRouter.get('/health', (_req, res) => {
   res.status(200).json({ status: 'OK', message: 'API is running' });
 });
 
-// Define API Endpoints
-masterRouter.post('/checkin', controller.processCheckIn);
-masterRouter.post('/checkout', controller.processCheckOut);
-masterRouter.get('/payment/:bookingId', controller.getPaymentDetails);
-
+// Define Unified Endpoint Routes
+// All operations work directly at http://localhost:5000 with different HTTP methods
+masterRouter.post('/', controller.processCheckIn);              // POST http://localhost:5000
+masterRouter.post('/checkout', controller.processCheckOut);    // POST http://localhost:5000/checkout
+masterRouter.get('/', controller.getAllPayments);               // GET http://localhost:5000
+masterRouter.get('/booking/:bookingId', controller.getPaymentDetails); // GET http://localhost:5000/booking/:id
+masterRouter.get('/:paymentId', controller.getPaymentById);     // GET http://localhost:5000/:id
+masterRouter.put('/:paymentId', controller.updatePayment);      // PUT http://localhost:5000/:id
+masterRouter.delete('/:paymentId', controller.deletePayment);   // DELETE http://localhost:5000/:id
 
 export default masterRouter;

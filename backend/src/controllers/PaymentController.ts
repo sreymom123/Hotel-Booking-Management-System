@@ -1,69 +1,24 @@
 import { Request, Response } from 'express';
-<<<<<<< HEAD
-import { PaymentService } from '../services';
-import { ApiResponse } from '../utils/response';
-import db from '../config/db'; // Import your mysql2 pool to run a direct test
-
-export class PaymentController {
-  constructor(private service: PaymentService) {}
-
-  /**
-   * Optional health-check to explicitly verify connection 
-   * state before processing transactions
-   */
-  
-  public verifyDatabaseConnection = async (req: Request, res: Response): Promise<void> => {
-    try {
-      // Execute a lightweight ping query directly to the MySQL cluster
-      const connection = await db.getConnection();
-      await connection.ping();
-      connection.release(); // Always release the worker thread back to the pool
-
-      ApiResponse.success(res, "Database connection is operational and healthy.", { status: "UP" });
-    } catch (error: any) {
-      ApiResponse.error(res, `Database connectivity check failed: ${error.message || "Disconnected"}`, 500);
-    }
-  };
-=======
 import { PaymentService } from '../services/PaymentService.js';
 import type { PaymentMethod } from '../services/PaymentService.js';
 import { sendError, sendSuccess } from '../utils/response.js';
 
 export class PaymentController {
-  constructor(private service: PaymentService) {}
->>>>>>> 01ecffbcf659f65de2522c5e7152b9c944e3b2c4
+  constructor(private service: PaymentService) { }
 
   public processCheckIn = async (req: Request, res: Response): Promise<void> => {
     try {
       const { bookingId, adminId, paymentMethod, note } = req.body;
 
       if (!bookingId || !adminId || !paymentMethod) {
-<<<<<<< HEAD
-        ApiResponse.error(res, "Validation parameters failed: bookingId, adminId, and paymentMethod are required.", 400);
-        return;
-      }
-
-      const parsedBookingId = Number(bookingId);
-      const parsedAdminId = Number(adminId);
-
-      if (isNaN(parsedBookingId) || isNaN(parsedAdminId)) {
-        ApiResponse.error(res, "Validation failed: bookingId and adminId must be valid numerical parameters.", 400);
-        return;
-      }
-
-      const log = await this.service.checkIn(parsedBookingId, parsedAdminId, paymentMethod, note);
-      ApiResponse.success(res, "Check-in processed successfully; Room state is now OCCUPIED.", log, 201);
-    } catch (error: any) {
-      ApiResponse.error(res, error.message || "An unexpected error occurred during check-in.", 500);
-=======
         sendError(res, "Validation parameters failed: bookingId, adminId, and paymentMethod are required.");
         return;
       }
+
       const log = await this.service.checkIn(String(bookingId), Number(adminId), String(paymentMethod) as PaymentMethod, note);
       sendSuccess(res, "Check-in processed successfully; room state is now Occupied.", log, 201);
     } catch (error: any) {
       sendError(res, error.message || "An unexpected error occurred during check-in.");
->>>>>>> 01ecffbcf659f65de2522c5e7152b9c944e3b2c4
     }
   };
 
@@ -72,23 +27,75 @@ export class PaymentController {
       const { bookingId, adminId, note } = req.body;
 
       if (!bookingId || !adminId) {
-<<<<<<< HEAD
-        ApiResponse.error(res, "Validation parameters failed: bookingId and adminId are required.", 400);
+        sendError(res, "Validation parameters failed: bookingId and adminId are required.");
         return;
       }
 
-      const parsedBookingId = Number(bookingId);
-      const parsedAdminId = Number(adminId);
-
-      if (isNaN(parsedBookingId) || isNaN(parsedAdminId)) {
-        ApiResponse.error(res, "Validation failed: bookingId and adminId must be valid numerical parameters.", 400);
-        return;
-      }
-
-      const log = await this.service.checkOut(parsedBookingId, parsedAdminId, note);
-      ApiResponse.success(res, "Check-out processed successfully; Room state is now AVAILABLE.", log, 200);
+      const log = await this.service.checkOut(String(bookingId), Number(adminId), note);
+      sendSuccess(res, "Check-out processed successfully; room state is now Available.", log);
     } catch (error: any) {
-      ApiResponse.error(res, error.message || "An unexpected error occurred during check-out.", 500);
+      sendError(res, error.message || "An unexpected error occurred during check-out.");
+    }
+  };
+
+  public getAllPayments = async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const payments = await this.service.getAllPayments();
+      sendSuccess(res, "Payment list retrieved successfully.", payments, 200);
+    } catch (error: any) {
+      sendError(res, error.message || "Unable to retrieve payment list.", 500);
+    }
+  };
+
+  public getPaymentById = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const paymentId = Number(req.params.paymentId);
+      if (!paymentId || isNaN(paymentId)) {
+        sendError(res, "Validation failed: paymentId must be a valid number.", 400);
+        return;
+      }
+
+      const payment = await this.service.getPaymentById(paymentId);
+      sendSuccess(res, "Payment record retrieved successfully.", payment, 200);
+    } catch (error: any) {
+      sendError(res, error.message || "Unable to retrieve payment record.", 500);
+    }
+  };
+
+  public updatePayment = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const paymentId = Number(req.params.paymentId);
+      if (!paymentId || isNaN(paymentId)) {
+        sendError(res, "Validation failed: paymentId must be a valid number.", 400);
+        return;
+      }
+
+      const { amount, paymentMethod, status, transactionNo } = req.body;
+      const update = await this.service.updatePayment(paymentId, {
+        amount: amount !== undefined ? Number(amount) : undefined,
+        paymentMethod: paymentMethod ? String(paymentMethod) as PaymentMethod : undefined,
+        status: status ? String(status) : undefined,
+        transactionNo: transactionNo ? String(transactionNo) : undefined,
+      });
+
+      sendSuccess(res, "Payment record updated successfully.", update, 200);
+    } catch (error: any) {
+      sendError(res, error.message || "Unable to update payment record.", 500);
+    }
+  };
+
+  public deletePayment = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const paymentId = Number(req.params.paymentId);
+      if (!paymentId || isNaN(paymentId)) {
+        sendError(res, "Validation failed: paymentId must be a valid number.", 400);
+        return;
+      }
+
+      const result = await this.service.deletePayment(paymentId);
+      sendSuccess(res, "Payment record deleted successfully.", result, 200);
+    } catch (error: any) {
+      sendError(res, error.message || "Unable to delete payment record.", 500);
     }
   };
 
@@ -97,23 +104,14 @@ export class PaymentController {
       const { bookingId } = req.params;
 
       if (!bookingId || isNaN(Number(bookingId))) {
-        ApiResponse.error(res, "Validation failed: URL path parameter bookingId must be a valid number.", 400);
+        sendError(res, "Validation failed: URL path parameter bookingId must be a valid number.", 400);
         return;
       }
 
       const data = await this.service.getPaymentDetails(Number(bookingId));
-      ApiResponse.success(res, "Payment profile found details cleanly parsed.", data, 200);
+      sendSuccess(res, "Payment profile found details cleanly parsed.", data, 200);
     } catch (error: any) {
-      ApiResponse.error(res, error.message || "An unexpected error occurred while fetching payment details.", 500);
-=======
-        sendError(res, "Validation parameters failed: bookingId and adminId are required.");
-        return;
-      }
-      const log = await this.service.checkOut(String(bookingId), Number(adminId), note);
-      sendSuccess(res, "Check-out processed successfully; room state is now Available.", log);
-    } catch (error: any) {
-      sendError(res, error.message || "An unexpected error occurred during check-out.");
->>>>>>> 01ecffbcf659f65de2522c5e7152b9c944e3b2c4
+      sendError(res, error.message || "An unexpected error occurred while fetching payment details.", 500);
     }
   };
 }

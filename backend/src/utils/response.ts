@@ -1,31 +1,19 @@
-<<<<<<< HEAD
-import { Response } from "express";
-
-export class ApiResponse {
-  public static success(res: Response, message: string, data?: unknown, status = 200): void {
-      res.status(status).json({
-        success: true,
-        message,
-        data: data ?? null,
-      });
-    }
-
-  public static error(res: Response, message: string, status = 400): void {
-      res.status(status).json({
-        success: false,
-        message,
-      });
-    }
-}
-=======
 import { NextFunction, Request, Response } from "express";
 
 export const sendSuccess = (res: Response, message: string, data: unknown, status = 200) => {
   res.status(status).json({ success: true, message, data });
 };
 
-export const sendError = (res: Response, message: string, errors: unknown[] = [], status = 400) => {
-  res.status(status).json({ success: false, message, errors });
+export const sendError = (
+  res: Response,
+  message: string,
+  statusOrErrors: number | unknown[] = 400,
+  errors: unknown[] = [],
+) => {
+  const status = typeof statusOrErrors === "number" ? statusOrErrors : 400;
+  const payloadErrors = Array.isArray(statusOrErrors) ? statusOrErrors : errors;
+
+  res.status(status).json({ success: false, message, errors: payloadErrors });
 };
 
 export const notFoundHandler = (request: Request, response: Response): void => {
@@ -48,4 +36,3 @@ export const errorHandler = (
     message: "An unexpected error occurred",
   });
 };
->>>>>>> 01ecffbcf659f65de2522c5e7152b9c944e3b2c4

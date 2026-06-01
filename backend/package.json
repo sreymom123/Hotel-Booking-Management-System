@@ -4,7 +4,7 @@
   "private": true,
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsc-watch --onSuccess \"node dist/server.js\"",
+    "dev": "tsx watch src/server.ts",
     "build": "rimraf dist && tsc",
     "start": "node dist/server.js",
     "check": "tsc --noEmit -p tsconfig.json",
@@ -13,13 +13,8 @@
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^16.4.5",
-<<<<<<< HEAD
     "express": "^4.21.2",
     "mysql2": "^3.11.0"
-=======
-    "express": "^4.22.2",
-    "mysql2": "^3.22.3"
->>>>>>> 01ecffbcf659f65de2522c5e7152b9c944e3b2c4
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
