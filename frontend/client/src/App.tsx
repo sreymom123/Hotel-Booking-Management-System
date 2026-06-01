@@ -131,6 +131,8 @@ export default function App() {
         body: JSON.stringify({
           roomId: newBooking.room.id,
           guestName: `${newBooking.guestInfo.firstName} ${newBooking.guestInfo.lastName}`,
+          guestEmail: newBooking.guestInfo.email,
+          guestPhone: newBooking.guestInfo.phone,
           checkInDate: newBooking.checkIn,
           checkOutDate: newBooking.checkOut,
           guestCount: Number.parseInt(newBooking.guests, 10) || 1,

@@ -1,69 +1,63 @@
-import { OperationPaymentMethod, OperationRepository } from "../repositories/PaymentRepository.js";
+import { PaymentRepository } from '../repositories/PaymentRepository.js';
 
-const paymentMethodMap: Record<string, OperationPaymentMethod> = {
-  CASH: "Cash",
-  CARD: "Credit Card",
-  CREDIT_CARD: "Credit Card",
-  DEBIT_CARD: "Debit Card",
-  TRANSFER: "Bank Transfer",
-  BANK_TRANSFER: "Bank Transfer",
-  ONLINE: "Online",
+export type PaymentMethod = 'Cash' | 'Credit Card' | 'Debit Card' | 'Bank Transfer' | 'Online';
+
+const paymentMethodAliases: Record<string, PaymentMethod> = {
+  CASH: 'Cash',
+  CARD: 'Credit Card',
+  CREDIT_CARD: 'Credit Card',
+  DEBIT_CARD: 'Debit Card',
+  TRANSFER: 'Bank Transfer',
+  BANK_TRANSFER: 'Bank Transfer',
+  ONLINE: 'Online',
+  PROPERTY: 'Cash',
 };
 
-export class OperationService {
-  constructor(private repo: OperationRepository) {}
+export class PaymentService {
+  constructor(private repo: PaymentRepository) {}
 
-  async checkIn(bookingId: number, adminId: number, paymentMethod: string, note?: string) {
-    const booking = await this.repo.findBookingById(bookingId);
+  async checkIn(bookingId: string, adminId: number, paymentMethod: PaymentMethod | string, note?: string) {
+    const booking = await this.repo.findBooking(bookingId);
     const normalizedPaymentMethod = normalizePaymentMethod(paymentMethod);
 
-    if (!booking) {
-      throw new Error("Target booking record not found.");
-    }
+    if (!booking) throw new Error('Target booking record not found.');
+    if (!Number.isFinite(adminId) || adminId <= 0) throw new Error('A valid adminId is required.');
+    if (booking.status === 'Checked-in') throw new Error('Guest has already checked in.');
+    if (booking.status === 'Checked-out') throw new Error('Guest has already checked out.');
+    if (booking.status === 'Cancelled' || booking.status === 'No Show') throw new Error('Cannot check in an inactive booking.');
 
-    if (booking.status === "Checked-in") {
-      throw new Error("Guest has already checked in.");
-    }
+    const paymentCode = `PAY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    if (booking.status === "Checked-out" || booking.status === "Cancelled") {
-      throw new Error("Cannot check in a completed or cancelled booking.");
-    }
-
-    if (booking.room_status === "Occupied") {
-      throw new Error("Target room is currently occupied.");
-    }
-
-    return this.repo.executeCheckInTx(
-      bookingId,
-      Number(booking.room_id),
+    return await this.repo.executeCheckInTx({
+      bookingId: booking.id,
+      roomId: booking.room_id,
       adminId,
-      normalizedPaymentMethod,
-      Number(booking.total_price),
+      paymentCode,
+      amount: Number(booking.total_price),
+      paymentMethod: normalizedPaymentMethod,
       note,
-    );
+    });
   }
 
-  async checkOut(bookingId: number, adminId: number, note?: string) {
-    const booking = await this.repo.findBookingById(bookingId);
+  async checkOut(bookingId: string, adminId: number, note?: string) {
+    const booking = await this.repo.findBooking(bookingId);
 
-    if (!booking) {
-      throw new Error("Target booking record not found.");
-    }
+    if (!booking) throw new Error('Target booking record not found.');
+    if (!Number.isFinite(adminId) || adminId <= 0) throw new Error('A valid adminId is required.');
+    if (booking.status !== 'Checked-in') throw new Error('Cannot run checkout procedures for an inactive stay.');
 
-    if (booking.status !== "Checked-in") {
-      throw new Error("Cannot run checkout procedures for an inactive stay.");
-    }
-
-    return this.repo.executeCheckOutTx(bookingId, Number(booking.room_id), adminId, note);
+    return await this.repo.executeCheckOutTx(booking.id, booking.room_id, adminId, note);
   }
 }
 
-function normalizePaymentMethod(paymentMethod: string): OperationPaymentMethod {
-  const normalized = paymentMethodMap[paymentMethod.trim().toUpperCase().replaceAll(" ", "_")];
+function normalizePaymentMethod(paymentMethod: PaymentMethod | string): PaymentMethod {
+  const raw = String(paymentMethod).trim();
+  const normalized = paymentMethodAliases[raw.toUpperCase().replaceAll(' ', '_')] ?? raw;
+  const allowed: PaymentMethod[] = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Online'];
 
-  if (!normalized) {
-    throw new Error("Unsupported payment method.");
+  if (!allowed.includes(normalized as PaymentMethod)) {
+    throw new Error('Valid paymentMethod is required.');
   }
 
-  return normalized;
+  return normalized as PaymentMethod;
 }
