@@ -179,7 +179,7 @@ router.post("/", async (request, response, next) => {
   }
 });
 
-router.put("/:id", requireAdmin, async (request, response, next) => {
+async function updateBooking(request: any, response: any, next: any) {
   try {
     const body = request.body as Record<string, unknown>;
     const bookingId = Number(request.params.id) || 0;
@@ -286,7 +286,10 @@ router.put("/:id", requireAdmin, async (request, response, next) => {
   } catch (error) {
     next(error);
   }
-});
+}
+
+router.put("/:id", requireAdmin, updateBooking);
+router.patch("/:id", requireAdmin, updateBooking);
 
 router.patch("/:id/status", requireAdmin, async (request, response, next) => {
   try {

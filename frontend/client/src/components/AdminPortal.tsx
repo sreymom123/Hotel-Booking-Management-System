@@ -41,22 +41,53 @@ export default function AdminPortal({
   onToggleRoomAvailability
 }: AdminPortalProps) {
   // Login input states
-  const [adminIdInput, setAdminIdInput] = useState('admin');
-  const [passwordInput, setPasswordInput] = useState('admin');
+  const [adminIdInput, setAdminIdInput] = useState('admin@grandhorizon.com');
+  const [passwordInput, setPasswordInput] = useState('admin123');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberDevice, setRememberDevice] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [loginError, setLoginError] = useState('');
 
   // Dashboard search & filters
   const [bookingFilterSearch, setBookingFilterSearch] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminIdInput.toLowerCase() === 'admin' && passwordInput.toLowerCase() === 'admin') {
+
+    setIsAuthenticating(true);
+    setLoginError('');
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: adminIdInput,
+          password: passwordInput,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Login failed');
+      }
+
+      const admin = result.data.admin ?? result.data.user;
+      if (!admin || admin.role !== 'admin') {
+        throw new Error('Admin access is required');
+      }
+
+      localStorage.setItem('gh_admin_token', result.data.token);
+      localStorage.setItem('gh_admin_profile', JSON.stringify(admin));
       setLoginError('');
       onLoginSuccess();
-    } else {
-      setLoginError('Invalid Administrator credentials. Please enter admin/admin for bypass.');
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : 'Login failed');
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -124,7 +155,7 @@ export default function AdminPortal({
                     className="w-full h-11 pl-10 pr-4 rounded-lg border border-[#c5c6cf] focus:border-[#031635] focus:ring-1 focus:ring-[#031635] outline-none transition-all text-sm bg-[#fbf8fc]"
                   />
                 </div>
-                <p className="text-[10px] text-[#75777f] font-semibold block mt-0.5">*(Hint: enter "admin")</p>
+                <p className="text-[10px] text-[#75777f] font-semibold block mt-0.5">Use the backend admin email.</p>
               </div>
 
               {/* Password input field */}
@@ -133,7 +164,7 @@ export default function AdminPortal({
                   <label className="text-xs font-bold text-[#44474e] uppercase tracking-wider block">Password</label>
                   <button 
                     type="button" 
-                    onClick={() => alert('Access credentials code default is: admin')}
+                    onClick={() => alert('Default admin credentials: admin@grandhorizon.com / admin123')}
                     className="text-xs text-[#006b5e] hover:underline font-semibold"
                   >
                     Forgot Admin Credentials?
@@ -157,7 +188,7 @@ export default function AdminPortal({
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-[10px] text-[#75777f] font-semibold block mt-0.5">*(Hint: enter "admin")</p>
+                <p className="text-[10px] text-[#75777f] font-semibold block mt-0.5">Use the backend admin password.</p>
               </div>
 
               {/* Remember device toggle */}
@@ -177,9 +208,10 @@ export default function AdminPortal({
               {/* Action secure CTA button */}
               <button 
                 type="submit"
+                disabled={isAuthenticating}
                 className="w-full py-4 bg-[#031635] hover:bg-[#1a2b4b] text-white font-bold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 select-none shadow transition-all active:scale-[0.98] h-12 mt-2"
               >
-                <span>Secure Login</span>
+                <span>{isAuthenticating ? 'Authenticating...' : 'Secure Login'}</span>
                 <UserCheck className="w-4 h-4" />
               </button>
 

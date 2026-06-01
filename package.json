@@ -1,4 +1,14 @@
 {
+  "private": true,
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:client": "npm --prefix frontend/client run dev",
+    "dev:admin": "npm --prefix frontend/admin run dev",
+    "build:backend": "npm --prefix backend run build",
+    "build:client": "npm --prefix frontend/client run build",
+    "build:admin": "npm --prefix frontend/admin run build",
+    "check:backend": "npm --prefix backend run check"
+  },
   "dependencies": {
     "dotenv": "^17.4.2",
     "mysql2": "^3.22.3"

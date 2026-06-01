@@ -47,13 +47,19 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         throw new Error(result.message || 'Login failed');
       }
 
+      const admin = result.data.admin ?? result.data.user;
+
+      if (!admin || admin.role !== 'admin') {
+        throw new Error('Admin access is required');
+      }
+
       localStorage.setItem('gh_admin_token', result.data.token);
-      localStorage.setItem('gh_admin_profile', JSON.stringify(result.data.admin));
+      localStorage.setItem('gh_admin_profile', JSON.stringify(admin));
       setIsAuthenticating(false);
       setAuthSuccess(true);
 
       setTimeout(() => {
-        onLoginSuccess(result.data.admin.email);
+        onLoginSuccess(admin.email);
       }, 800);
     } catch (error) {
       setIsAuthenticating(false);

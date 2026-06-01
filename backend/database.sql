@@ -14,21 +14,21 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS rooms (
-  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  room_number VARCHAR(30) NOT NULL,
-  room_type ENUM('Suite', 'Deluxe', 'Standard', 'Executive') NOT NULL,
-  name VARCHAR(120) NOT NULL,
-  floor_number INT NOT NULL,
-  location VARCHAR(160) NULL,
-  capacity INT NOT NULL,
-  price DECIMAL(10, 2) NOT NULL,
-  description TEXT NULL,
-  image_url VARCHAR(500) NULL,
-  status ENUM('Available', 'Occupied', 'Cleaning', 'Maintenance') NOT NULL DEFAULT 'Available',
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  UNIQUE KEY rooms_room_number_unique (room_number)
+   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+   room_number VARCHAR(30) NOT NULL,
+   room_type ENUM('Suite', 'Deluxe', 'Standard', 'Executive') NOT NULL,
+   name VARCHAR(120) NOT NULL,
+   floor_number INT NOT NULL,
+   location VARCHAR(160) NULL,
+   capacity INT NOT NULL,
+   price DECIMAL(10, 2) NOT NULL,
+   description TEXT NULL,
+   image_url VARCHAR(500) NULL,
+   status ENUM('Available', 'Occupied', 'Cleaning', 'Maintenance') NOT NULL DEFAULT 'Available',
+   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   PRIMARY KEY (id),
+   UNIQUE KEY rooms_room_number_unique (room_number)
 );
 
 CREATE TABLE IF NOT EXISTS bookings (
@@ -111,18 +111,18 @@ ON DUPLICATE KEY UPDATE
 
 INSERT INTO rooms (room_number, room_type, name, floor_number, location, capacity, price, description, image_url, status)
 VALUES
-  ('101', 'Suite', 'Suite 101', 1, 'Main Building', 4, 450.00, 'Private suite room for premium stays.', NULL, 'Available'),
-  ('102', 'Suite', 'Suite 102', 1, 'Main Building', 4, 450.00, 'Private suite room for premium stays.', NULL, 'Available'),
-  ('204', 'Deluxe', 'Deluxe Room 204', 2, 'Main Building', 2, 280.00, 'Deluxe room with private hotel amenities.', NULL, 'Occupied'),
-  ('305', 'Standard', 'Standard Room 305', 3, 'Main Building', 2, 150.00, 'Standard private room.', NULL, 'Cleaning'),
-  ('901', 'Executive', 'Executive Room 901', 9, 'Executive Floor', 4, 750.00, 'Executive private room with premium service.', NULL, 'Maintenance')
+   ('101', 'Suite', 'Suite 101', 1, 'Main Building', 4, 450.00, 'Private suite room for premium stays.', NULL, 'Available'),
+   ('102', 'Suite', 'Suite 102', 1, 'Main Building', 4, 450.00, 'Private suite room for premium stays.', NULL, 'Available'),
+   ('204', 'Deluxe', 'Deluxe Room 204', 2, 'Main Building', 2, 280.00, 'Deluxe room with private hotel amenities.', NULL, 'Occupied'),
+   ('305', 'Standard', 'Standard Room 305', 3, 'Main Building', 2, 150.00, 'Standard private room.', NULL, 'Cleaning'),
+   ('901', 'Executive', 'Executive Room 901', 9, 'Executive Floor', 4, 750.00, 'Executive private room with premium service.', NULL, 'Maintenance')
 ON DUPLICATE KEY UPDATE
-  room_type = VALUES(room_type),
-  name = VALUES(name),
-  floor_number = VALUES(floor_number),
-  location = VALUES(location),
-  capacity = VALUES(capacity),
-  price = VALUES(price),
-  description = VALUES(description),
-  image_url = VALUES(image_url),
-  status = VALUES(status);
+   room_type = VALUES(room_type),
+   name = VALUES(name),
+   floor_number = VALUES(floor_number),
+   location = VALUES(location),
+   capacity = VALUES(capacity),
+   price = VALUES(price),
+   description = VALUES(description),
+   image_url = VALUES(image_url),
+   status = VALUES(status);
