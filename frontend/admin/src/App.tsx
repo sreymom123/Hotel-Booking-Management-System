@@ -39,6 +39,14 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
   });
   const result = await response.json();
 
+  if (response.status === 401) {
+    localStorage.setItem('gh_loggedin', 'false');
+    localStorage.removeItem('gh_admin_token');
+    localStorage.removeItem('gh_admin_profile');
+    window.location.reload();
+    throw new Error(result.message || 'Admin session is invalid');
+  }
+
   if (!response.ok || !result.success) {
     throw new Error(result.message || 'API request failed');
   }

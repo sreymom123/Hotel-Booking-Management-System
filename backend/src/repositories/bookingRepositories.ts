@@ -161,10 +161,27 @@ export class BookingRepository {
       throw new Error(`Booking ${id} cannot be cancelled after check-in`);
     }
 
+    // Get room_id to release the room
+    const [bookingData] = await db.query<RowDataPacket[]>(
+      "SELECT room_id FROM bookings WHERE id = ?",
+      [id],
+    );
+
+    const roomId = bookingData[0]?.room_id;
+
+    // Cancel the booking
     await db.query<ResultSetHeader>(
       "UPDATE bookings SET status = 'Cancelled' WHERE id = ?",
       [id],
     );
+
+    // Release the room back to Available status so others can book it
+    if (roomId) {
+      await db.query<ResultSetHeader>(
+        "UPDATE rooms SET status = 'Available' WHERE id = ?",
+        [roomId],
+      );
+    }
 
     return this.findById(id);
   }

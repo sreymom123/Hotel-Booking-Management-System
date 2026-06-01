@@ -11,7 +11,7 @@ export const requireAdmin = (
   next: NextFunction,
 ): void => {
   const header = request.header("authorization");
-  const token = header?.startsWith("Bearer ") ? header.slice("Bearer ".length) : null;
+  const token = header?.match(/^\s*Bearer\s+(.+)$/i)?.[1] ?? null;
 
   if (!token) {
     response.status(401).json({
