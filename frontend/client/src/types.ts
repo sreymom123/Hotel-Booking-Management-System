@@ -24,7 +24,9 @@ export interface Booking {
   guests: string;
   totalPrice: number;
   status: 'CONFIRMED' | 'PENDING' | 'CANCELLED';
-  paymentMethod: 'ONLINE' | 'PROPERTY';
+  paymentMethod: 'ONLINE' | 'PROPERTY' | 'BAKONG';
+  roomServiceTotal?: number;
+  roomServiceItems?: string[];
   guestInfo: {
     firstName: string;
     lastName: string;

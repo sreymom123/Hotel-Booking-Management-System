@@ -7,15 +7,13 @@ import {
   Phone, 
   Mail, 
   CreditCard, 
-  TrendingUp, 
-  ShieldAlert, 
-  Sparkles, 
-  Star, 
   Users, 
   Info,
-  Calendar,
   Lock,
-  Loader2
+  Loader2,
+  CheckCircle,
+  Utensils,
+  ReceiptText
 } from 'lucide-react';
 
 interface CheckoutProps {
@@ -26,6 +24,15 @@ interface CheckoutProps {
   onSubmitBooking: (booking: Booking) => void;
   onNavigate: (view: string) => void;
 }
+
+type PaymentMethod = 'ONLINE' | 'PROPERTY' | 'BAKONG';
+
+const roomServiceItems = [
+  { id: 'breakfast', name: 'Khmer Breakfast Set', description: 'Rice porridge, fruit, coffee, and fresh juice.', price: 18 },
+  { id: 'dinner', name: 'In-room Dinner', description: 'Two-course chef menu delivered between 6:00 PM and 9:00 PM.', price: 42 },
+  { id: 'minibar', name: 'Mini-bar Refill', description: 'Water, soft drinks, snacks, and local tea selection.', price: 24 },
+  { id: 'laundry', name: 'Express Laundry', description: 'Same-day garment care for arrival day.', price: 16 },
+];
 
 export default function Checkout({ 
   room, 
@@ -42,7 +49,9 @@ export default function Checkout({
   const [phone, setPhone] = useState('+1 (555) 000-0000');
   
   // Payment tab switch
-  const [paymentMethod, setPaymentMethod] = useState<'ONLINE' | 'PROPERTY'>('ONLINE');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('BAKONG');
+  const [selectedServices, setSelectedServices] = useState<string[]>(['breakfast']);
+  const [bakongConfirmed, setBakongConfirmed] = useState(false);
   
   // Credit card details
   const [cardNumber, setCardNumber] = useState('4421 8911 0022 4587');
@@ -73,12 +82,45 @@ export default function Checkout({
   const totalBase = baseRate * nights;
   const taxes = Math.round(totalBase * 0.12);
   const resortFees = 75;
-  const finalTotalAmount = totalBase + taxes + resortFees;
+  const roomServiceTotal = roomServiceItems
+    .filter((item) => selectedServices.includes(item.id))
+    .reduce((sum, item) => sum + item.price, 0);
+  const finalTotalAmount = totalBase + taxes + resortFees + roomServiceTotal;
+  const bakongReference = `BKG-${room.id}-${String(finalTotalAmount).padStart(4, '0')}`;
+  const bakongAmountKhr = finalTotalAmount * 4100;
+  const bakongPayload = [
+    'BAKONG-KHQR',
+    'merchant=Nexus Hospitality Room & Service',
+    `amount_usd=${finalTotalAmount}`,
+    `amount_khr=${bakongAmountKhr}`,
+    `reference=${bakongReference}`,
+  ].join('|');
+  const bakongQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=12&data=${encodeURIComponent(bakongPayload)}`;
+
+  const toggleRoomService = (serviceId: string) => {
+    setSelectedServices((current) =>
+      current.includes(serviceId)
+        ? current.filter((id) => id !== serviceId)
+        : [...current, serviceId],
+    );
+  };
+
+  const selectPaymentMethod = (method: PaymentMethod) => {
+    setPaymentMethod(method);
+    if (method !== 'BAKONG') {
+      setBakongConfirmed(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName || !lastName || !email || !phone) {
       alert('Please fill out all primary guest details.');
+      return;
+    }
+
+    if (paymentMethod === 'BAKONG' && !bakongConfirmed) {
+      alert('Please confirm the Bakong transfer after scanning the KHQR code.');
       return;
     }
 
@@ -94,8 +136,12 @@ export default function Checkout({
         days: nights,
         guests: occupancy,
         totalPrice: finalTotalAmount,
-        status: paymentMethod === 'ONLINE' ? 'CONFIRMED' : 'PENDING',
+        status: paymentMethod === 'PROPERTY' ? 'PENDING' : 'CONFIRMED',
         paymentMethod,
+        roomServiceTotal,
+        roomServiceItems: roomServiceItems
+          .filter((item) => selectedServices.includes(item.id))
+          .map((item) => item.name),
         guestInfo: {
           firstName,
           lastName,
@@ -199,11 +245,22 @@ export default function Checkout({
             </div>
 
             {/* Slider Switch tabs */}
-            <div className="flex p-1 bg-[#f5f3f6] rounded-xl mb-8">
+            <div className="grid grid-cols-3 p-1 bg-[#f5f3f6] rounded-xl mb-8">
               <button 
                 type="button"
-                onClick={() => setPaymentMethod('ONLINE')}
-                className={`flex-grow py-3 px-4 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                onClick={() => selectPaymentMethod('BAKONG')}
+                className={`py-3 px-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                  paymentMethod === 'BAKONG' 
+                    ? 'bg-white text-[#031635] shadow-sm' 
+                    : 'text-[#44474e] hover:bg-white/50'
+                }`}
+              >
+                Bakong KHQR
+              </button>
+              <button 
+                type="button"
+                onClick={() => selectPaymentMethod('ONLINE')}
+                className={`py-3 px-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
                   paymentMethod === 'ONLINE' 
                     ? 'bg-white text-[#031635] shadow-sm' 
                     : 'text-[#44474e] hover:bg-white/50'
@@ -213,8 +270,8 @@ export default function Checkout({
               </button>
               <button 
                 type="button"
-                onClick={() => setPaymentMethod('PROPERTY')}
-                className={`flex-grow py-3 px-4 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                onClick={() => selectPaymentMethod('PROPERTY')}
+                className={`py-3 px-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
                   paymentMethod === 'PROPERTY' 
                     ? 'bg-white text-[#031635] shadow-sm' 
                     : 'text-[#44474e] hover:bg-white/50'
@@ -224,7 +281,63 @@ export default function Checkout({
               </button>
             </div>
 
-            {paymentMethod === 'ONLINE' ? (
+            {paymentMethod === 'BAKONG' ? (
+              <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-6">
+                <div className="bg-white border-2 border-[#031635] rounded-xl p-4 flex flex-col items-center justify-center aspect-square">
+                  <div className="w-full flex items-center justify-between text-[10px] font-black text-[#031635] mb-2">
+                    <span>KHQR</span>
+                    <span>BAKONG</span>
+                  </div>
+                  <div className="flex-1 w-full bg-[#f5f3f6] rounded-lg border border-[#c5c6cf] flex items-center justify-center p-2">
+                    <img
+                      src={bakongQrUrl}
+                      alt={`Bakong KHQR payment code for ${bakongReference}`}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <span className="mt-2 text-[10px] font-bold text-[#75777f]">ABA / ACLEDA / Bakong</span>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-[#E2E8F0] bg-[#f5f3f6] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black text-[#031635] uppercase tracking-wider">Scan to Pay</p>
+                        <p className="text-sm text-[#44474e] mt-1">Nexus Hospitality Room &amp; Service</p>
+                      </div>
+                      <span className="font-black text-xl text-[#031635]">${finalTotalAmount}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
+                      <div>
+                        <span className="text-[#75777f] uppercase font-bold block">KHR Estimate</span>
+                        <span className="font-black text-[#1b1b1e]">{bakongAmountKhr.toLocaleString()} KHR</span>
+                      </div>
+                      <div>
+                        <span className="text-[#75777f] uppercase font-bold block">Reference</span>
+                        <span className="font-mono font-black text-[#1b1b1e]">{bakongReference}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setBakongConfirmed((value) => !value)}
+                    className={`w-full h-12 rounded-xl border font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                      bakongConfirmed
+                        ? 'bg-[#4a9e8f] text-white border-[#4a9e8f]'
+                        : 'bg-white text-[#031635] border-[#c5c6cf] hover:border-[#031635]'
+                    }`}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span>{bakongConfirmed ? 'Bakong Transfer Confirmed' : 'I Have Paid with Bakong'}</span>
+                  </button>
+
+                  <p className="text-xs text-[#75777f] leading-relaxed">
+                    The front desk will reconcile this reference with the Bakong settlement record before check-in. Room service items are included in the same payable amount.
+                  </p>
+                </div>
+              </div>
+            ) : paymentMethod === 'ONLINE' ? (
               <div className="space-y-6">
                 
                 {/* Instant Digital wallets */}
@@ -309,6 +422,49 @@ export default function Checkout({
             )}
           </section>
 
+          <section className="bg-white rounded-xl border border-[#E2E8F0] p-6 sm:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 rounded-full bg-[#1a2b4b]/10 flex items-center justify-center text-[#031635]">
+                <Utensils className="w-4 h-4" />
+              </div>
+              <h2 className="text-xl font-bold text-[#031635]">Room Service Payment</h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {roomServiceItems.map((item) => {
+                const selected = selectedServices.includes(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => toggleRoomService(item.id)}
+                    className={`text-left p-4 rounded-xl border transition-all ${
+                      selected
+                        ? 'border-[#006b5e] bg-[#9ef2e1]/10 shadow-sm'
+                        : 'border-[#E2E8F0] bg-[#fbf8fc] hover:border-[#c5c6cf]'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-[#031635]">{item.name}</p>
+                        <p className="text-xs text-[#75777f] mt-1 leading-relaxed">{item.description}</p>
+                      </div>
+                      <span className="text-sm font-black text-[#031635]">${item.price}</span>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#006b5e]">
+                      <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                        selected ? 'bg-[#006b5e] border-[#006b5e]' : 'bg-white border-[#c5c6cf]'
+                      }`}>
+                        {selected && <CheckCircle className="w-3 h-3 text-white" />}
+                      </span>
+                      <span>{selected ? 'Added to payment' : 'Add service'}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           {/* Special Requests */}
           <section className="bg-white rounded-xl border border-[#E2E8F0] p-6 sm:p-8 shadow-sm">
             <h2 className="text-xl font-bold text-[#031635] mb-5">Special Requests (Optional)</h2>
@@ -388,6 +544,10 @@ export default function Checkout({
                 <span>Eco & Resort Fees</span>
                 <span className="font-semibold text-[#1b1b1e]">${resortFees}</span>
               </div>
+              <div className="flex justify-between text-[#44474e]">
+                <span>Room Service</span>
+                <span className="font-semibold text-[#1b1b1e]">${roomServiceTotal}</span>
+              </div>
 
               <div className="pt-4 border-t border-[#E2E8F0] flex justify-between items-center text-base">
                 <span className="font-bold text-[#031635]">Grand Total Due</span>
@@ -410,15 +570,19 @@ export default function Checkout({
                 </>
               ) : (
                 <>
-                  <span>{paymentMethod === 'ONLINE' ? 'Confirm & Pay' : 'Reserve & Confirm'}</span>
+                  <span>
+                    {paymentMethod === 'BAKONG'
+                      ? bakongConfirmed ? 'Complete Bakong Booking' : 'Confirm Bakong Payment'
+                      : paymentMethod === 'ONLINE' ? 'Confirm & Pay' : 'Reserve & Confirm'}
+                  </span>
                   <ChevronRight className="w-5 h-5" />
                 </>
               )}
             </button>
 
             <div className="mt-6 flex items-center gap-2 justify-center text-[11px] text-[#4a9e8f] font-semibold border-t border-[#E2E8F0]/80 pt-4">
-              <Lock className="w-3.5 h-3.5" />
-              <span>TLS 1.3 256-bit Secure Reservation</span>
+              {paymentMethod === 'BAKONG' ? <ReceiptText className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+              <span>{paymentMethod === 'BAKONG' ? 'Bakong KHQR payment reference required' : 'TLS 1.3 256-bit Secure Reservation'}</span>
             </div>
           </div>
 

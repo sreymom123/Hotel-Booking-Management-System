@@ -1,70 +1,117 @@
-import { prisma } from '../config/db';
+import { ResultSetHeader, RowDataPacket } from 'mysql2';
+import { db } from '../config/db.js';
+import type { PaymentMethod } from '../services/PaymentService.js';
 
-export class OperationRepository {
-  // 1. Logs upfront guest payment attributes
-  async createPayment(data: { bookingId: number; paymentCode: string; amount: number; paymentMethod: 'CASH' | 'CARD' | 'TRANSFER' }, tx?: any) {
-    const db = tx || prisma;
-    return await db.payments.create({
-      data: {
-        booking_id: BigInt(data.bookingId),
-        payment_code: data.paymentCode,
-        amount: data.amount,
-        payment_method: data.paymentMethod,
-        status: 'PAID',
-        paid_at: new Date()
+export type PaymentBookingRow = RowDataPacket & {
+  id: number;
+  room_id: number;
+  total_price: number | string;
+  status: string;
+  room_status: string;
+};
+
+export class PaymentRepository {
+  async findBooking(bookingId: string): Promise<PaymentBookingRow | null> {
+    const numericId = Number(bookingId);
+    const [rows] = await db.query<PaymentBookingRow[]>(
+      `
+      SELECT b.id, b.room_id, b.total_price, b.status, r.status AS room_status
+      FROM bookings b
+      INNER JOIN rooms r ON r.id = b.room_id
+      WHERE b.booking_code = ? OR b.id = ?
+      LIMIT 1
+      `,
+      [bookingId, Number.isFinite(numericId) ? numericId : 0],
+    );
+
+    return rows[0] ?? null;
+  }
+
+  async executeCheckInTx(data: {
+    bookingId: number;
+    roomId: number;
+    adminId: number;
+    paymentCode: string;
+    amount: number;
+    paymentMethod: PaymentMethod;
+    note?: string;
+  }) {
+    const connection = await db.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const [paymentResult] = await connection.query<ResultSetHeader>(
+        `
+        INSERT INTO payments (booking_id, payment_code, amount, payment_method, status, paid_at)
+        VALUES (?, ?, ?, ?, 'Paid', NOW())
+        `,
+        [data.bookingId, data.paymentCode, data.amount, data.paymentMethod],
+      );
+
+      const [logResult] = await connection.query<ResultSetHeader>(
+        `
+        INSERT INTO checkin_checkout_logs (booking_id, checked_in_by, check_in_time, note)
+        VALUES (?, ?, NOW(), ?)
+        `,
+        [data.bookingId, data.adminId, data.note || 'Guest checked in.'],
+      );
+
+      await connection.query("UPDATE rooms SET status = 'Occupied' WHERE id = ?", [data.roomId]);
+      await connection.query("UPDATE bookings SET status = 'Checked-in' WHERE id = ?", [data.bookingId]);
+
+      await connection.commit();
+
+      return {
+        id: logResult.insertId,
+        bookingId: data.bookingId,
+        paymentId: paymentResult.insertId,
+        paymentCode: data.paymentCode,
+        status: 'Checked-in',
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async executeCheckOutTx(bookingId: number, roomId: number, adminId: number, note?: string) {
+    const connection = await db.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const [logResult] = await connection.query<ResultSetHeader>(
+        `
+        UPDATE checkin_checkout_logs
+        SET checked_out_by = ?, check_out_time = NOW(), note = ?
+        WHERE booking_id = ? AND check_out_time IS NULL
+        ORDER BY check_in_time DESC
+        LIMIT 1
+        `,
+        [adminId, note || 'Guest checked out cleanly.', bookingId],
+      );
+
+      if (logResult.affectedRows === 0) {
+        throw new Error('No active check-in log found for this booking.');
       }
-    });
-  }
 
-  // 2. Commits Check-In Log and forces Room status to OCCUPIED
-  async executeCheckInTx(bookingId: number, roomId: bigint, adminId: number, note?: string) {
-    return await prisma.$transaction(async (tx) => {
-      const log = await tx.checkin_checkout_logs.create({
-        data: {
-          booking_id: BigInt(bookingId),
-          checked_in_by: BigInt(adminId),
-          check_in_time: new Date(),
-          note: note || "Guest checked in."
-        }
-      });
+      await connection.query("UPDATE rooms SET status = 'Available' WHERE id = ?", [roomId]);
+      await connection.query("UPDATE bookings SET status = 'Checked-out' WHERE id = ?", [bookingId]);
 
-      await tx.rooms.update({
-        where: { id: roomId },
-        data: { status: 'OCCUPIED' }
-      });
+      await connection.commit();
 
-      await tx.bookings.update({
-        where: { id: BigInt(bookingId) },
-        data: { status: 'CHECKED_IN' }
-      });
-
-      return log;
-    });
-  }
-
-  // 3. Updates Check-Out details and releases Room back to AVAILABLE
-  async executeCheckOutTx(bookingId: number, roomId: bigint, adminId: number, note?: string) {
-    return await prisma.$transaction(async (tx) => {
-      const log = await tx.checkin_checkout_logs.update({
-        where: { booking_id: BigInt(bookingId) },
-        data: {
-          checked_out_by: BigInt(adminId),
-          check_out_time: new Date(),
-          note: note || "Guest checked out cleanly."
-        }
-      });
-
-      await tx.rooms.update({
-        where: { id: roomId },
-        data: { status: 'AVAILABLE' }
-      });
-
-      await tx.bookings.update({
-        where: { id: BigInt(bookingId) },
-        data: { status: 'CHECKED_OUT' }
-      });
-
-      return log;
-    });
+      return {
+        bookingId,
+        status: 'Checked-out',
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 }
