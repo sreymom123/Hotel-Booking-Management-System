@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+<<<<<<< HEAD
 import { PaymentService } from '../services';
 import { ApiResponse } from '../utils/response';
 import db from '../config/db'; // Import your mysql2 pool to run a direct test
@@ -23,12 +24,21 @@ export class PaymentController {
       ApiResponse.error(res, `Database connectivity check failed: ${error.message || "Disconnected"}`, 500);
     }
   };
+=======
+import { PaymentService } from '../services/PaymentService.js';
+import type { PaymentMethod } from '../services/PaymentService.js';
+import { sendError, sendSuccess } from '../utils/response.js';
+
+export class PaymentController {
+  constructor(private service: PaymentService) {}
+>>>>>>> 01ecffbcf659f65de2522c5e7152b9c944e3b2c4
 
   public processCheckIn = async (req: Request, res: Response): Promise<void> => {
     try {
       const { bookingId, adminId, paymentMethod, note } = req.body;
 
       if (!bookingId || !adminId || !paymentMethod) {
+<<<<<<< HEAD
         ApiResponse.error(res, "Validation parameters failed: bookingId, adminId, and paymentMethod are required.", 400);
         return;
       }
@@ -45,6 +55,15 @@ export class PaymentController {
       ApiResponse.success(res, "Check-in processed successfully; Room state is now OCCUPIED.", log, 201);
     } catch (error: any) {
       ApiResponse.error(res, error.message || "An unexpected error occurred during check-in.", 500);
+=======
+        sendError(res, "Validation parameters failed: bookingId, adminId, and paymentMethod are required.");
+        return;
+      }
+      const log = await this.service.checkIn(String(bookingId), Number(adminId), String(paymentMethod) as PaymentMethod, note);
+      sendSuccess(res, "Check-in processed successfully; room state is now Occupied.", log, 201);
+    } catch (error: any) {
+      sendError(res, error.message || "An unexpected error occurred during check-in.");
+>>>>>>> 01ecffbcf659f65de2522c5e7152b9c944e3b2c4
     }
   };
 
@@ -53,6 +72,7 @@ export class PaymentController {
       const { bookingId, adminId, note } = req.body;
 
       if (!bookingId || !adminId) {
+<<<<<<< HEAD
         ApiResponse.error(res, "Validation parameters failed: bookingId and adminId are required.", 400);
         return;
       }
@@ -85,6 +105,15 @@ export class PaymentController {
       ApiResponse.success(res, "Payment profile found details cleanly parsed.", data, 200);
     } catch (error: any) {
       ApiResponse.error(res, error.message || "An unexpected error occurred while fetching payment details.", 500);
+=======
+        sendError(res, "Validation parameters failed: bookingId and adminId are required.");
+        return;
+      }
+      const log = await this.service.checkOut(String(bookingId), Number(adminId), note);
+      sendSuccess(res, "Check-out processed successfully; room state is now Available.", log);
+    } catch (error: any) {
+      sendError(res, error.message || "An unexpected error occurred during check-out.");
+>>>>>>> 01ecffbcf659f65de2522c5e7152b9c944e3b2c4
     }
   };
 }

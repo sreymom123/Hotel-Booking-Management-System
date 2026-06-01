@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import app from "./app";
 import { config } from "./config/index";
 import db from "./config/db"; // Import your live mysql2 connection pool
@@ -36,3 +37,14 @@ const startServer = async (): Promise<void> => {
 };
 
 void startServer();
+=======
+import dotenv from "dotenv";
+import app from "./app.js";
+
+dotenv.config();
+
+const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || "localhost";
+
+app.listen(PORT, () => console.log(`Server running on http://${HOST}:${PORT}`));
+>>>>>>> 01ecffbcf659f65de2522c5e7152b9c944e3b2c4

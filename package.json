@@ -1,10 +1,18 @@
 {
   "dependencies": {
+<<<<<<< HEAD
     "mysql2": "^3.22.3",
     "sequelize": "^6.37.8",
     "sequelize-cli": "^6.6.5"
   },
   "devDependencies": {
     "tsx": "^4.22.3"
+=======
+    "dotenv": "^17.4.2",
+    "mysql2": "^3.22.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1"
+>>>>>>> 01ecffbcf659f65de2522c5e7152b9c944e3b2c4
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Room, Booking } from './types';
 import { INITIAL_ROOMS, INITIAL_BOOKINGS } from './roomsData';
@@ -25,6 +25,51 @@ import {
   Sparkles
 } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const fallbackImage = INITIAL_ROOMS[0]?.image || '';
+
+type ApiRoom = {
+  id: string;
+  type: string;
+  price: number;
+  status: string;
+};
+
+async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(result.message || 'API request failed');
+  }
+
+  return result.data as T;
+}
+
+function mapApiRoom(room: ApiRoom): Room {
+  return {
+    id: room.id,
+    name: `${room.type} Room ${room.id}`,
+    price: Number(room.price),
+    image: fallbackImage,
+    location: 'Grand Horizon Hotel',
+    capacity: room.type === 'Suite' || room.type === 'Executive' ? '4 Guests' : '2 Guests',
+    bedType: room.type === 'Standard' ? 'Double Bed' : 'King Size',
+    size: room.type === 'Standard' ? '400 sq ft' : '650 sq ft',
+    rating: 4.7,
+    amenities: ['High-speed WiFi', 'Climate Control', 'Smart TV', 'Private Bathroom'],
+    available: room.status === 'Available',
+    tag: room.type === 'Executive' ? 'Featured Premium' : undefined,
+    statusText: room.status,
+  };
+}
+
 export default function App() {
   // Navigation / View state
   const [currentView, setCurrentView] = useState<string>('home'); // 'home' (Guest Portals), 'rooms', 'detail', 'checkout', 'success', 'support', 'admin'
@@ -48,6 +93,19 @@ export default function App() {
   // Admin login credentials status
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
 
+  useEffect(() => {
+    void loadRooms();
+  }, []);
+
+  const loadRooms = async () => {
+    try {
+      const apiRooms = await apiRequest<ApiRoom[]>('/rooms');
+      setRooms(apiRooms.map(mapApiRoom));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   // Quick navigation helpers
   const handleNavigate = (view: string) => {
     setCurrentView(view);
@@ -66,19 +124,39 @@ export default function App() {
     window.scrollTo(0, 0);
   };
 
-  const handleSubmitBooking = (newBooking: Booking) => {
-    // Append stay to master dynamic state bookings roster
-    setBookings(prev => [newBooking, ...prev]);
-    setLastBookingResult(newBooking);
-    
-    // Automatically flag that booked room is now busy in the database
-    setRooms(prevRooms => prevRooms.map(r => 
-      r.id === newBooking.room.id ? { ...r, available: false } : r
-    ));
+  const handleSubmitBooking = async (newBooking: Booking) => {
+    try {
+      const createdBooking = await apiRequest<{ id: string; status: 'PENDING' | 'CONFIRMED' | 'CANCELLED'; totalPrice: number }>('/bookings', {
+        method: 'POST',
+        body: JSON.stringify({
+          roomId: newBooking.room.id,
+          guestName: `${newBooking.guestInfo.firstName} ${newBooking.guestInfo.lastName}`,
+          guestEmail: newBooking.guestInfo.email,
+          guestPhone: newBooking.guestInfo.phone,
+          checkInDate: newBooking.checkIn,
+          checkOutDate: newBooking.checkOut,
+          guestCount: Number.parseInt(newBooking.guests, 10) || 1,
+          specialRequest: newBooking.specialRequests,
+        }),
+      });
 
-    // Redirect to dynamic confirmation receipt view
-    setCurrentView('success');
-    window.scrollTo(0, 0);
+      const savedBooking = {
+        ...newBooking,
+        id: createdBooking.id,
+        status: createdBooking.status,
+        totalPrice: createdBooking.totalPrice,
+      };
+
+      setBookings(prev => [savedBooking, ...prev]);
+      setLastBookingResult(savedBooking);
+      setRooms(prevRooms => prevRooms.map(r =>
+        r.id === savedBooking.room.id ? { ...r, available: false, statusText: 'Occupied' } : r
+      ));
+      setCurrentView('success');
+      window.scrollTo(0, 0);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to create booking');
+    }
   };
 
   const handleCancelBooking = (bookingId: string) => {
