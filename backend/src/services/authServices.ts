@@ -1,69 +1,74 @@
-export interface AdminSession {
-  token: string;
-  admin: {
-    name: string;
-    email: string;
-    role: "admin";
-  };
-}
+import jwt from "jsonwebtoken";
+import { userRepository } from "../repositories/userRepositories.js";
+import { User } from "../models/user.js";
 
-const adminEmail = process.env.ADMIN_EMAIL ?? "admin@grandhorizon.com";
-const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
-const adminName = process.env.ADMIN_NAME ?? "Hotel Administrator";
-const tokenSecret = process.env.ADMIN_TOKEN_SECRET ?? "hotel-booking-admin";
+const JWT_SECRET = process.env.JWT_SECRET ?? "hotel-booking-secret";
 
 export class AuthService {
-  static async login(email: string, password: string): Promise<AdminSession> {
-    if (email.trim().toLowerCase() !== adminEmail.toLowerCase() || password !== adminPassword) {
-      throw new Error("Invalid email or password");
-    }
-
-    return {
-      token: createToken(adminEmail),
-      admin: {
-        name: adminName,
-        email: adminEmail,
-        role: "admin",
-      },
-    };
-  }
-
-  static verifyToken(token: string): AdminSession["admin"] | null {
-    const decoded = decodeToken(token);
-
-    if (!decoded || decoded.email.toLowerCase() !== adminEmail.toLowerCase()) {
+  /**
+   * Verify JWT token and return payload if valid
+   */
+  static verifyToken(token: string): { userId: number; email: string; role: string } | null {
+    try {
+      const payload = jwt.verify(token, JWT_SECRET) as {
+        userId: number;
+        email: string;
+        role: string;
+      };
+      return payload;
+    } catch (err) {
       return null;
     }
-
-    return {
-      name: adminName,
-      email: adminEmail,
-      role: "admin",
-    };
   }
-}
 
-function createToken(email: string): string {
-  const payload = JSON.stringify({ email, secret: tokenSecret });
-  return Buffer.from(payload).toString("base64url");
-}
+  /**
+   * Get user details by ID (excluding password)
+   */
+  static async getUserById(userId: number): Promise<{
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    phone: string | null;
+    profile_image: string | null;
+    is_active: boolean;
+    created_at: Date;
+    updated_at: Date;
+  } | null> {
+    const user = await userRepository.findById(userId);
+    if (!user) return null;
+    const { password, ...userInfo } = user;
+    return userInfo;
+  }
 
-function decodeToken(token: string): { email: string; secret: string } | null {
-  try {
-    const payload = JSON.parse(Buffer.from(token, "base64url").toString("utf8")) as {
-      email?: unknown;
-      secret?: unknown;
-    };
+  /**
+   * Authenticate user with email and password (used for login)
+   */
+  static async validateCredentials(email: string, password: string): Promise<{
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    phone: string | null;
+    profile_image: string | null;
+    is_active: boolean;
+    created_at: Date;
+    updated_at: Date;
+    token: string;
+  } | null> {
+    const user = await userRepository.findByEmail(email);
+    if (!user) return null;
 
-    if (payload.secret !== tokenSecret || typeof payload.email !== "string") {
-      return null;
-    }
+    const passwordValid = await require("bcrypt").compare(password, user.password);
+    if (!passwordValid) return null;
 
-    return {
-      email: payload.email,
-      secret: payload.secret,
-    };
-  } catch {
-    return null;
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    const { password: _, ...userInfo } = user;
+    return { ...userInfo, token };
   }
 }

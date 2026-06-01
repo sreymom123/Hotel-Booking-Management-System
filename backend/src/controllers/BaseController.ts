@@ -30,6 +30,9 @@ export class BaseController {
     protected conflict(res: Response, message = "Conflict") {
         return this.error(res, 409, message);
     }
+    protected unauthorized(res: Response, message = "Unauthorized") {
+        return this.error(res, 401, message);
+    }
     protected serverError(res: Response, error: unknown){
         const message = error instanceof Error ? error.message: "Internal server error";
 

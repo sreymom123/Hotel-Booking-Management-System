@@ -1,13 +1,15 @@
 {
-  "dependencies": {
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "mysql2": "^3.22.3"
+  "private": true,
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:client": "npm --prefix frontend/client run dev",
+    "dev:admin": "npm --prefix frontend/admin run dev",
+    "build:backend": "npm --prefix backend run build",
+    "build:client": "npm --prefix frontend/client run build",
+    "build:admin": "npm --prefix frontend/admin run build",
+    "check:backend": "npm --prefix backend run check"
   },
-  "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/node": "^25.9.1"
+  "dependencies": {
+    "axios": "^1.16.1"
   }
 }
