@@ -8,6 +8,7 @@ import { errorHandler, notFoundHandler } from "./utils/response.js";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import path from "path";
+import fs from "fs";
 
 const app = express();
 
@@ -46,8 +47,13 @@ app.use("/api/auth", authRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/bookings", bookingRoutes);
 
-// Swagger documentation
-const swaggerDocument = YAML.load(path.join(__dirname, "./docs/swagger.yaml"));
+const swaggerCandidates = [
+  path.join(__dirname, "./docs/swagger.yaml"),
+  path.resolve(process.cwd(), "src/docs/swagger.yaml"),
+  path.resolve(process.cwd(), "docs/swagger.yaml"),
+];
+const swaggerPath = swaggerCandidates.find((candidate) => fs.existsSync(candidate));
+const swaggerDocument = YAML.load(swaggerPath ?? swaggerCandidates[0]);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use(notFoundHandler);
