@@ -23,6 +23,7 @@ const connection = await mysql.createConnection({
 try {
   await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\``);
   await connection.query(`USE \`${database}\``);
+  await applyBookingCompatibilityFixes(connection);
 
   const sql = await readFile(path.join(backendRoot, "database.sql"), "utf8");
   const statements = sql
@@ -32,9 +33,31 @@ try {
 
   for (const statement of statements) {
     await connection.query(statement);
+
+    if (/^CREATE TABLE IF NOT EXISTS bookings\b/i.test(statement)) {
+      await applyBookingCompatibilityFixes(connection);
+    }
   }
+
+  await applyBookingCompatibilityFixes(connection);
 
   console.log(`Database migration completed for ${database}.`);
 } finally {
   await connection.end();
+}
+
+async function applyBookingCompatibilityFixes(connection) {
+  const [tables] = await connection.query("SHOW TABLES LIKE 'bookings'");
+
+  if (tables.length === 0) {
+    return;
+  }
+
+  await connection.query("ALTER TABLE bookings MODIFY user_id BIGINT UNSIGNED NULL");
+
+  try {
+    await connection.query("ALTER TABLE bookings MODIFY id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT");
+  } catch (error) {
+    console.warn(`Skipping bookings.id compatibility alter: ${error.message}`);
+  }
 }
