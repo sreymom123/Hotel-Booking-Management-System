@@ -17,8 +17,8 @@ export class AuthController extends BaseController {
         return this.badrequest(res, "Invalid email or password");
       }
 
-      const { password: _, ...userInfo } = result;
-      return this.ok(res, { user: userInfo, token: result.token }, "Login successful");
+      const { token, ...userInfo } = result;
+      return this.ok(res, { user: userInfo, token }, "Login successful");
     } catch (error: unknown) {
       return this.handleError(res, error);
     }

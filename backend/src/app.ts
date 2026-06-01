@@ -1,4 +1,4 @@
-import cors from "cors";
+import cors, { type CorsOptions } from "cors";
 import express from "express";
 import authRoutes from "./routes/authRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
@@ -11,7 +11,27 @@ import path from "path";
 
 const app = express();
 
-app.use(cors({ origin: process.env.CORS_ORIGIN ?? true }));
+const configuredOrigins = (process.env.CORS_ORIGIN ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions: CorsOptions = {
+  origin(origin, callback) {
+    const isAllowedLocalhost = origin
+      ? /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)
+      : true;
+
+    if (!origin || isAllowedLocalhost || configuredOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS origin not allowed: ${origin}`));
+  },
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get("/api", (_request, response) => {
