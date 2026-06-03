@@ -10,7 +10,7 @@ const backendRoot = path.resolve(__dirname, "..");
 
 dotenv.config({ path: path.join(backendRoot, ".env") });
 
-const database = process.env.DB_NAME ?? "hotelbookingmanagementsystem";
+const database = process.env.DB_NAME ?? "hotel_booking";
 
 const connection = await mysql.createConnection({
   host: process.env.DB_HOST ?? "localhost",

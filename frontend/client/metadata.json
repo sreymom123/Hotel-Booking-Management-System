@@ -1,6 +1,0 @@
-{
-  "name": "Nexus Hospitality",
-  "description": "A high-fidelity hotel room overview, guest portal, checkout, and administrative support workspace for Nexus Hospitality.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: Simple Hotel Booking Management System API
 servers:
-  - url: http://localhost:3000/api
+  - url: http://localhost:5000/api
     description: Development server
   - url: https://api.yourdomain.com/api
     description: Production server
