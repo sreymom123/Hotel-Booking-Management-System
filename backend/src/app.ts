@@ -1,29 +1,63 @@
-import cors from "cors";
+import cors, { type CorsOptions } from "cors";
 import express from "express";
-
-import { config } from "./config";
-import { errorHandler, notFoundHandler } from "./middlewares";
-import router from "./routes";
+import authRoutes from "./routes/authRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
+import healthRoutes from "./routes/health.routes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import roomRoutes from "./routes/roomRoutes.js";
+import { errorHandler, notFoundHandler } from "./utils/response.js";
+import swaggerUi from "swagger-ui-express";
+import YAML from "yamljs";
+import path from "path";
+import fs from "fs";
 
 const app = express();
 
-app.use(
-  cors({
-    origin: config.corsOrigin === "*" ? true : config.corsOrigin,
-    credentials: true,
-  }),
-);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const configuredOrigins = (process.env.CORS_ORIGIN ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-app.get("/", (_request, response) => {
+const corsOptions: CorsOptions = {
+  origin(origin, callback) {
+    const isAllowedLocalhost = origin
+      ? /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)
+      : true;
+
+    if (!origin || isAllowedLocalhost || configuredOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS origin not allowed: ${origin}`));
+  },
+};
+
+app.use(cors(corsOptions));
+app.use(express.json());
+
+app.get("/api", (_request, response) => {
   response.status(200).json({
-    message: "Welcome to the Hotel Booking Management API.",
-    healthCheck: "/api/health",
+    success: true,
+    message: "Hotel Booking Management API routes are available",
   });
 });
 
-app.use("/api", router);
+app.use("/api/health", healthRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/payments", paymentRoutes);
+
+const swaggerCandidates = [
+  path.join(__dirname, "./docs/swagger.yaml"),
+  path.resolve(process.cwd(), "src/docs/swagger.yaml"),
+  path.resolve(process.cwd(), "docs/swagger.yaml"),
+];
+const swaggerPath = swaggerCandidates.find((candidate) => fs.existsSync(candidate));
+const swaggerDocument = YAML.load(swaggerPath ?? swaggerCandidates[0]);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
